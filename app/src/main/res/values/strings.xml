@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">Smart Gloves 4 CPR Training</string>
+    <string name="instructions_text">Start by pressing scan.\nTapping on a sensor will connect your device to a sensor.\nAfter the device is connected you will be taken to the training screen \n
+    </string>
+    <string name="title_activity_training">FullscreenActivity</string>
+    <string name="unsubscribe">Unsubscribe</string>
+    <string name="stop_scan">Stop Scan</string>
+    <string name="scan">Scan</string>
+    <string name="_0">0</string>
+    <string name="freq">0</string>
+    <string name="_01_00">01:00</string>
+    <string name="start">Start</string>
+    <string name="frequency_min">Frequency (/min)</string>
+    <string name="depth">Depth (cm)</string>
+    <string name="optimal_frequency_100_120">Optimal frequency: 100-120</string>
+    <string name="save_data">Save data</string>
+    <string name="optimal_depth_5cm">Optimal depth: 4-5cm</string>
+    <string name="saving">Saving...</string>
+    <string name="connecting">Connecting...</string>
+</resources>
