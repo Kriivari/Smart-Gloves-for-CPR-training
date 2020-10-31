@@ -34,6 +34,10 @@ import java.util.ArrayList;
 import io.reactivex.disposables.Disposable;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemLongClickListener, AdapterView.OnItemClickListener  {
+
+    // This gets set to true if no Suunto Movesense devices are found.
+    public boolean TESTING = false;
+
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
     private static final int MY_PERMISSIONS_REQUEST_LOCATION = 1;
 
@@ -168,8 +172,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                             // Process scan result here. filter movesense devices.
                             if (scanResult.getBleDevice()!=null &&
-                                    scanResult.getBleDevice().getName() != null &&
-                                    !scanResult.getBleDevice().getName().startsWith("Movesense")) {
+                                    scanResult.getBleDevice().getName() != null) {
 
                                 // replace if exists already, add otherwise
                                 MyScanResult msr = new MyScanResult(scanResult);
@@ -219,6 +222,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             onScanStopClicked(null);
             // And connect to the device
             //indicate connection
+            if(device.name.startsWith("Movesense")) {
+                TESTING = false;
+            } else {
+                TESTING = true;
+            }
             connectTxt.setVisibility(View.VISIBLE);
             connectBLEDevice(device);
         }

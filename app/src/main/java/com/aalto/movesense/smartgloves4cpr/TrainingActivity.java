@@ -96,6 +96,7 @@ public class TrainingActivity extends AppCompatActivity {
     private Timer metronome;
 
     //Vuzix testing
+    private boolean TESTING = MainActivity.TESTING;
     private Timer testTimer;
 
     private Mds getMDS() {return MainActivity.mMds;}
@@ -133,29 +134,32 @@ public class TrainingActivity extends AppCompatActivity {
             }
         });
 
-        //Vuzix testing
         playMetronome();
-        testTimer = new Timer();
-        testTimer.schedule(new TimerTask() {
-            public void run() {
-                updateDisplayTest();
-            }
-        }, 0, 1000);
-        /* mButtonStart.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!mTimerRunning) {
-                    mTimeLeftInMillis=START_TIME_IN_MILLIS;
-                    eraseAllLogs();
-                    mButtonStart.setVisibility(View.INVISIBLE);
-                    mSaveText.setVisibility(View.GONE);
-                    subscribeToSensor(connectedSerial);
-                    setDataLoggerState(true);
 
+        if( TESTING ) {
+            //Vuzix testing
+            testTimer = new Timer();
+            testTimer.schedule(new TimerTask() {
+                public void run() {
+                    updateDisplayTest();
                 }
-            }
-        }); */
+            }, 0, 1000);
+        } else {
+            mButtonStart.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (!mTimerRunning) {
+                        mTimeLeftInMillis = START_TIME_IN_MILLIS;
+                        eraseAllLogs();
+                        mButtonStart.setVisibility(View.INVISIBLE);
+                        mSaveText.setVisibility(View.GONE);
+                        subscribeToSensor(connectedSerial);
+                        setDataLoggerState(true);
 
+                    }
+                }
+            });
+        }
 
 
     }
