@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Smart Gloves 4 CPR Training</string>
-    <string name="instructions_text">Start by pressing scan.\nTapping on a sensor will connect your device to a sensor.\nAfter the device is connected you will be taken to the training screen \n
+    <string name="instructions_text">Press Scan and tap on the sensor.\n
     </string>
     <string name="title_activity_training">FullscreenActivity</string>
     <string name="unsubscribe">Unsubscribe</string>

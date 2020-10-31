@@ -12,6 +12,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.SoundEffectConstants;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -32,9 +33,21 @@ import java.io.OutputStreamWriter;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class TrainingActivity extends AppCompatActivity {
+
+    private static final int GOOD_SPEED_LOWER_LIMIT = 100;
+    private static final int GOOD_SPEED_HIGHER_LIMIT = 120;
+    private static final int GOOD_DEPTH_LOWER_LIMIT = 5;
+    private static final int GOOD_DEPTH_HIGHER_LIMIT = 6;
+
+    // UI colors
+    private int GOOD_COMPRESSION_COLOR = Color.argb(50, 0, 158, 155);
+    private int SHALLOW_OR_SLOW_COLOR = Color.argb(50, 240, 228, 66);
+    private int DEEP_OR_FAST_COLOR = Color.argb(50, 0, 114, 78);
+
 
     private static final String LOG_TAG = TrainingActivity.class.getSimpleName();
     public static final String SERIAL = "serial";
@@ -64,13 +77,12 @@ public class TrainingActivity extends AppCompatActivity {
     private double minTop= -7;
     private double minBot= -12;
     private double depth;
-    private double freq;
+    private double freq = 100;
 
     // UI elements
     private Button saveBtn;
     private ProgressBar freqProgressBar;
     private ProgressBar depthProgressBar;
-    private TextView mTextViewCountDown;
     private TextView mSaveText;
     private Button mButtonStart;
 
@@ -79,6 +91,11 @@ public class TrainingActivity extends AppCompatActivity {
     private CountDownTimer mCountDownTimer;
     private boolean mTimerRunning;
     private long mTimeLeftInMillis = START_TIME_IN_MILLIS;
+
+    private Timer metronome;
+
+    //Vuzix testing
+    private Timer testTimer;
 
     private Mds getMDS() {return MainActivity.mMds;}
 
@@ -99,9 +116,6 @@ public class TrainingActivity extends AppCompatActivity {
         getWindow().getDecorView().setBackgroundColor(Color.parseColor("#ccffff"));
         saveBtn=(Button) findViewById(R.id.save);
         saveBtn.setVisibility(View.GONE);
-        mTextViewCountDown = (TextView) findViewById(R.id.timeText);
-        (findViewById(R.id.countText)).setVisibility(View.GONE);
-        mButtonStart = (Button)findViewById(R.id.startTraining);
         configureDataLogger();
         fetchDataLoggerState();
         freqProgressBar= (ProgressBar) findViewById(R.id.freqBar);
@@ -117,13 +131,21 @@ public class TrainingActivity extends AppCompatActivity {
 
             }
         });
-        mButtonStart.setOnClickListener(new View.OnClickListener() {
+
+        //Vuzix testing
+        playMetronome();
+        testTimer = new Timer();
+        testTimer.schedule(new TimerTask() {
+            public void run() {
+                updateDisplayTest();
+            }
+        }, 0, 1000);
+        /* mButtonStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (!mTimerRunning) {
                     mTimeLeftInMillis=START_TIME_IN_MILLIS;
                     eraseAllLogs();
-                    startTimer();
                     mButtonStart.setVisibility(View.INVISIBLE);
                     mSaveText.setVisibility(View.GONE);
                     subscribeToSensor(connectedSerial);
@@ -131,43 +153,68 @@ public class TrainingActivity extends AppCompatActivity {
 
                 }
             }
-        });
+        }); */
+
 
 
     }
 
-    private void startTimer() {
-        mCountDownTimer = new CountDownTimer(mTimeLeftInMillis, 1000) {
-            @Override
-            public void onTick(long millisUntilFinished) {
-                mTimeLeftInMillis = millisUntilFinished;
-                updateCountDownText();
+    //Vuzix testing
+    private void updateDisplayTest() {
+        this.runOnUiThread(tick);
+    }
+
+    private Runnable tick = new Runnable() {
+        public void run() {
+            double freqRandom = Math.random();
+            if( freqRandom < 0.2 ) {
+                freq -= 1;
+            } else if( freqRandom > 0.8 ){
+                freq += 1;
             }
-            @Override
-            public void onFinish() {
-                mTimerRunning = false;
-                mButtonStart.setText("Start");
-                mButtonStart.setVisibility(View.INVISIBLE);
-                setDataLoggerState(false);
-                saveBtn.setVisibility(View.VISIBLE);
-                unsubscribe();
-                mButtonStart.setVisibility(View.VISIBLE);
-
-
-
+            double depthRandom = Math.random();
+            if( depthRandom < 0.2 ) {
+                depth -= 1;
+            } else if( depthRandom > 0.8 ){
+                depth += 1;
             }
-        }.start();
-        mTimerRunning = true;
-    }
+            if( freq < 80 ) {
+                freq = 80;
+            }
+            if( freq > 140 ) {
+                freq = 140;
+            }
+            if( depth < 2 ) {
+                depth = 2;
+            }
+            if( depth > 7 ) {
+                depth = 7;
+            }
+            int freqInt= (int) freq;
+            int depthInt= (int) depth;
+            String freqStr = String.format("%.0f",freq);
+            String distStr = String.format("%.0f",depth);
+            ((TextView) findViewById(R.id.freq)).setText(freqStr);
+            ((TextView) findViewById(R.id.depth)).setText(distStr);
+            freqProgressBar.setProgress(freqInt);
+            if( freqInt < GOOD_SPEED_LOWER_LIMIT ) {
+                freqProgressBar.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
+            } else if( freqInt > GOOD_SPEED_HIGHER_LIMIT ) {
+                freqProgressBar.setBackgroundColor(DEEP_OR_FAST_COLOR);
+            } else {
+                freqProgressBar.setBackgroundColor(GOOD_COMPRESSION_COLOR);
+            }
+            depthProgressBar.setProgress(depthInt);
+            if( depthInt < GOOD_DEPTH_LOWER_LIMIT ) {
+                depthProgressBar.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
+            } else if( depthInt > GOOD_DEPTH_HIGHER_LIMIT ) {
+                depthProgressBar.setBackgroundColor(DEEP_OR_FAST_COLOR);
+            } else {
+                depthProgressBar.setBackgroundColor(GOOD_COMPRESSION_COLOR);
+            }
 
-
-    private void updateCountDownText() {
-        int minutes = (int) (mTimeLeftInMillis / 1000) / 60;
-        int seconds = (int) (mTimeLeftInMillis / 1000) % 60;
-        String timeLeftFormatted = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
-        mTextViewCountDown.setText(timeLeftFormatted);
-    }
-
+        }
+    };
 
     @Override
     public void onBackPressed() {
@@ -281,7 +328,21 @@ public class TrainingActivity extends AppCompatActivity {
                             ((TextView) findViewById(R.id.freq)).setText(freqStr);
                             ((TextView) findViewById(R.id.depth)).setText(distStr);
                             freqProgressBar.setProgress(freqInt);
+                            if( freqInt < GOOD_SPEED_LOWER_LIMIT ) {
+                                freqProgressBar.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
+                            } else if( freqInt > GOOD_SPEED_HIGHER_LIMIT ) {
+                                freqProgressBar.setBackgroundColor(DEEP_OR_FAST_COLOR);
+                            } else {
+                                freqProgressBar.setBackgroundColor(GOOD_COMPRESSION_COLOR);
+                            }
                             depthProgressBar.setProgress(depthInt);
+                            if( depthInt < GOOD_DEPTH_LOWER_LIMIT ) {
+                                depthProgressBar.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
+                            } else if( depthInt > GOOD_DEPTH_HIGHER_LIMIT ) {
+                                depthProgressBar.setBackgroundColor(DEEP_OR_FAST_COLOR);
+                            } else {
+                                depthProgressBar.setBackgroundColor(GOOD_COMPRESSION_COLOR);
+                            }
 
 
                         }
@@ -482,6 +543,19 @@ public class TrainingActivity extends AppCompatActivity {
 
         subscribedDeviceSerial = null;
 
+    }
+
+    public void playMetronome() {
+        metronome = new Timer();
+        metronome.schedule(new TimerTask() { public void run() { playSound(); } }, 0, 570); // 570 = 60000 / 105
+    }
+
+    private void  playSound() {
+        this.runOnUiThread(new Runnable() { public void run() {
+            if( freq > GOOD_SPEED_HIGHER_LIMIT || freq < GOOD_SPEED_LOWER_LIMIT ) {
+                getWindow().getDecorView().playSoundEffect(SoundEffectConstants.CLICK);
+            }
+        }});
     }
 
 }

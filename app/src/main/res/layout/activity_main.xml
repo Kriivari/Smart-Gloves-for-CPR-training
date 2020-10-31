@@ -32,7 +32,7 @@
     <LinearLayout
         android:id="@+id/linearLayout"
         android:layout_width="402dp"
-        android:layout_height="605dp"
+        android:layout_height="200dp"
         android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -71,7 +71,7 @@
 
         <TextView
             android:id="@+id/textView"
-            android:layout_width="match_parent"
+            android:layout_width="384dp"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
             android:text="@string/instructions_text"

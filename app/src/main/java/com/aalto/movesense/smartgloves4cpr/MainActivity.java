@@ -168,7 +168,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             // Process scan result here. filter movesense devices.
                             if (scanResult.getBleDevice()!=null &&
                                     scanResult.getBleDevice().getName() != null &&
-                                    scanResult.getBleDevice().getName().startsWith("Movesense")) {
+                                    !scanResult.getBleDevice().getName().startsWith("Movesense")) {
 
                                 // replace if exists already, add otherwise
                                 MyScanResult msr = new MyScanResult(scanResult);
@@ -245,6 +245,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         RxBleDevice bleDevice = getBleClient().getBleDevice(device.macAddress);
         final Activity me = this;
         Log.i(LOG_TAG, "Connecting to BLE device: " + bleDevice.getMacAddress());
+        connectTxt.setVisibility(View.INVISIBLE);
+        Intent intent = new Intent(me, TrainingActivity.class);
+        intent.putExtra(TrainingActivity.SERIAL, "none");
+        startActivity(intent);
+        /*
         mMds.connect(bleDevice.getMacAddress(), new MdsConnectionListener() {
 
             @Override
@@ -292,7 +297,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 mScanResArrayAdapter.notifyDataSetChanged();
             }
-        });
+        }); */
     }
 
     private void showConnectionError(MdsException e) {
