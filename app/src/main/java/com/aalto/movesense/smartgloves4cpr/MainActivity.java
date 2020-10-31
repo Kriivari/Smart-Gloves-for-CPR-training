@@ -13,6 +13,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -72,7 +73,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         View decorView = getWindow().getDecorView();
         int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
         decorView.setSystemUiVisibility(uiOptions);
-        getWindow().getDecorView().setBackgroundColor(Color.parseColor("#ccffff"));
+        getWindow().getDecorView().setBackgroundColor(Color.parseColor("#ffffff"));
         connectTxt=(TextView)findViewById(R.id.ConnectTxt);
 
 

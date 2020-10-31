@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.SoundEffectConstants;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -44,9 +45,9 @@ public class TrainingActivity extends AppCompatActivity {
     private static final int GOOD_DEPTH_HIGHER_LIMIT = 6;
 
     // UI colors
-    private int GOOD_COMPRESSION_COLOR = Color.argb(50, 0, 158, 155);
-    private int SHALLOW_OR_SLOW_COLOR = Color.argb(50, 240, 228, 66);
-    private int DEEP_OR_FAST_COLOR = Color.argb(50, 0, 114, 78);
+    private int DEEP_OR_FAST_COLOR = Color.argb(255, 0, 158, 155);
+    private int SHALLOW_OR_SLOW_COLOR = Color.argb(255, 240, 228, 66);
+    private int GOOD_COMPRESSION_COLOR = Color.argb(255, 0, 114, 78);
 
 
     private static final String LOG_TAG = TrainingActivity.class.getSimpleName();
@@ -76,7 +77,7 @@ public class TrainingActivity extends AppCompatActivity {
     private AccDataResponse[] twoSecs= new AccDataResponse[26];
     private double minTop= -7;
     private double minBot= -12;
-    private double depth;
+    private double depth = 9;
     private double freq = 100;
 
     // UI elements
@@ -111,9 +112,9 @@ public class TrainingActivity extends AppCompatActivity {
 
         //set up fullscreen and UI
         View decorView = getWindow().getDecorView();
-        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN + View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
         decorView.setSystemUiVisibility(uiOptions);
-        getWindow().getDecorView().setBackgroundColor(Color.parseColor("#ccffff"));
+        getWindow().getDecorView().setBackgroundColor(Color.parseColor("#ffffff"));
         saveBtn=(Button) findViewById(R.id.save);
         saveBtn.setVisibility(View.GONE);
         configureDataLogger();
@@ -187,8 +188,8 @@ public class TrainingActivity extends AppCompatActivity {
             if( depth < 2 ) {
                 depth = 2;
             }
-            if( depth > 7 ) {
-                depth = 7;
+            if( depth > 9 ) {
+                depth = 9;
             }
             int freqInt= (int) freq;
             int depthInt= (int) depth;
