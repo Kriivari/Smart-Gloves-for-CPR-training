@@ -6,17 +6,14 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -24,7 +21,6 @@ import com.movesense.mds.Mds;
 import com.movesense.mds.MdsConnectionListener;
 import com.movesense.mds.MdsException;
 import com.movesense.mds.MdsSubscription;
-import com.aalto.movesense.smartgloves4cpr.R;
 import com.polidea.rxandroidble2.RxBleClient;
 import com.polidea.rxandroidble2.RxBleDevice;
 import com.polidea.rxandroidble2.scan.ScanSettings;
@@ -35,38 +31,27 @@ import io.reactivex.disposables.Disposable;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemLongClickListener, AdapterView.OnItemClickListener  {
 
-    // This gets set to true if no Suunto Movesense devices are found.
-    public boolean TESTING = false;
+    // True if not connecting to a Suunto Movesense device.
+    public static boolean TESTING = false;
+
+    public static final String MOVESENSE_NAME = "Movesense";
 
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
     private static final int MY_PERMISSIONS_REQUEST_LOCATION = 1;
 
     // MDS
-    static Mds mMds;
-    public static final String URI_CONNECTEDDEVICES = "suunto://MDS/ConnectedDevices";
-    public static final String URI_EVENTLISTENER = "suunto://MDS/EventListener";
-    public static final String SCHEME_PREFIX = "suunto://";
+    protected static Mds mMds;
 
     // BleClient singleton
     static private RxBleClient mBleClient;
 
-    // UI
-    private ListView mScanResultListView;
-    private ArrayList<MyScanResult> mScanResArrayList = new ArrayList<>();
-    ArrayAdapter<MyScanResult> mScanResArrayAdapter;
+    private final ArrayList<MyScanResult> mScanResArrayList = new ArrayList<>();
+    private ArrayAdapter<MyScanResult> mScanResArrayAdapter;
     private TextView connectTxt;
 
     // Sensor subscription
-    static private String URI_MEAS_ACC_13 = "/Meas/Acc/13";
     private MdsSubscription mdsSubscription;
     private String subscribedDeviceSerial;
-
-
-
-
-
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,7 +67,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
 
         // Init Scan UI
-        mScanResultListView = (ListView)findViewById(R.id.listScanResult);
+        // UI
+        ListView mScanResultListView = (ListView) findViewById(R.id.listScanResult);
         mScanResArrayAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_list_item_1, mScanResArrayList);
         mScanResultListView.setAdapter(mScanResArrayAdapter);
@@ -97,12 +83,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         initMds();
     }
 
-
-
-
-
-
-
     private RxBleClient getBleClient() {
         // Init RxAndroidBle (Ble helper library) if not yet initialized
         if (mBleClient == null)
@@ -112,10 +92,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         return mBleClient;
     }
-
-
-
-
 
     private void initMds() {
         mMds = Mds.builder().build(this);
@@ -170,16 +146,19 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         scanResult -> {
                             Log.d(LOG_TAG,"scanResult: " + scanResult);
 
-                            // Process scan result here. filter movesense devices.
+                            // Process scan result here.
                             if (scanResult.getBleDevice()!=null &&
                                     scanResult.getBleDevice().getName() != null) {
 
                                 // replace if exists already, add otherwise
                                 MyScanResult msr = new MyScanResult(scanResult);
-                                if (mScanResArrayList.contains(msr))
+                                if (mScanResArrayList.contains(msr)) {
                                     mScanResArrayList.set(mScanResArrayList.indexOf(msr), msr);
-                                else
+                                } else if(scanResult.getBleDevice().getName().startsWith(MOVESENSE_NAME)){
                                     mScanResArrayList.add(0, msr);
+                                } else {
+                                    mScanResArrayList.add(msr);
+                                }
 
                                 mScanResArrayAdapter.notifyDataSetChanged();
                             }
@@ -222,11 +201,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             onScanStopClicked(null);
             // And connect to the device
             //indicate connection
-            if(device.name.startsWith("Movesense")) {
-                TESTING = false;
-            } else {
-                TESTING = true;
-            }
+            TESTING = !device.name.startsWith(MOVESENSE_NAME);
             connectTxt.setVisibility(View.VISIBLE);
             connectBLEDevice(device);
         }
@@ -254,59 +229,60 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         RxBleDevice bleDevice = getBleClient().getBleDevice(device.macAddress);
         final Activity me = this;
         Log.i(LOG_TAG, "Connecting to BLE device: " + bleDevice.getMacAddress());
-        connectTxt.setVisibility(View.INVISIBLE);
-        Intent intent = new Intent(me, TrainingActivity.class);
-        intent.putExtra(TrainingActivity.SERIAL, "none");
-        startActivity(intent);
-        /*
-        mMds.connect(bleDevice.getMacAddress(), new MdsConnectionListener() {
+        if(TESTING) {
+            connectTxt.setVisibility(View.INVISIBLE);
+            Intent intent = new Intent(me, TrainingActivity.class);
+            intent.putExtra(TrainingActivity.SERIAL, "none");
+            startActivity(intent);
+        } else {
+            mMds.connect(bleDevice.getMacAddress(), new MdsConnectionListener() {
 
-            @Override
-            public void onConnect(String s) {
-                Log.d(LOG_TAG, "onConnect:" + s);
-            }
-
-            @Override
-            public void onConnectionComplete(String macAddress, String serial) {
-                for (MyScanResult sr : mScanResArrayList) {
-                    if (sr.macAddress.equalsIgnoreCase(macAddress)) {
-                        sr.markConnected(serial);
-                        break;
-                    }
-                }
-                mScanResArrayAdapter.notifyDataSetChanged();
-                // Open the DataLoggerActivity
-                connectTxt.setVisibility(View.INVISIBLE);
-                Intent intent = new Intent(me, TrainingActivity.class);
-                intent.putExtra(TrainingActivity.SERIAL, serial);
-                startActivity(intent);
-            }
-
-            @Override
-            public void onError(MdsException e) {
-                Log.e(LOG_TAG, "onError:" + e);
-                connectTxt.setVisibility(View.INVISIBLE);
-                showConnectionError(e);
-            }
-
-            @Override
-            public void onDisconnect(String bleAddress) {
-
-                Log.d(LOG_TAG, "onDisconnect: " + bleAddress);
-                for (MyScanResult sr : mScanResArrayList) {
-                    if (bleAddress.equals(sr.macAddress))
-                    {
-                        // unsubscribe if was subscribed
-                        if (sr.connectedSerial != null && sr.connectedSerial.equals(subscribedDeviceSerial))
-                            unsubscribe();
-
-                        sr.markDisconnected();
-                    }
+                @Override
+                public void onConnect(String s) {
+                    Log.d(LOG_TAG, "onConnect:" + s);
                 }
 
-                mScanResArrayAdapter.notifyDataSetChanged();
-            }
-        }); */
+                @Override
+                public void onConnectionComplete(String macAddress, String serial) {
+                    for (MyScanResult sr : mScanResArrayList) {
+                        if (sr.macAddress.equalsIgnoreCase(macAddress)) {
+                            sr.markConnected(serial);
+                            break;
+                        }
+                    }
+                    mScanResArrayAdapter.notifyDataSetChanged();
+                    // Open the DataLoggerActivity
+                    connectTxt.setVisibility(View.INVISIBLE);
+                    Intent intent = new Intent(me, TrainingActivity.class);
+                    intent.putExtra(TrainingActivity.SERIAL, serial);
+                    startActivity(intent);
+                }
+
+                @Override
+                public void onError(MdsException e) {
+                    Log.e(LOG_TAG, "onError:" + e);
+                    connectTxt.setVisibility(View.INVISIBLE);
+                    showConnectionError(e);
+                }
+
+                @Override
+                public void onDisconnect(String bleAddress) {
+
+                    Log.d(LOG_TAG, "onDisconnect: " + bleAddress);
+                    for (MyScanResult sr : mScanResArrayList) {
+                        if (bleAddress.equals(sr.macAddress)) {
+                            // unsubscribe if was subscribed
+                            if (sr.connectedSerial != null && sr.connectedSerial.equals(subscribedDeviceSerial))
+                                unsubscribe();
+
+                            sr.markDisconnected();
+                        }
+                    }
+
+                    mScanResArrayAdapter.notifyDataSetChanged();
+                }
+            });
+        }
     }
 
     private void showConnectionError(MdsException e) {

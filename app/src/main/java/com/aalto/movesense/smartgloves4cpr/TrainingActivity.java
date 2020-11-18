@@ -1,12 +1,9 @@
 package com.aalto.movesense.smartgloves4cpr;
 
-
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.media.MediaScannerConnection;
-import android.os.CountDownTimer;
 import android.os.Environment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -14,7 +11,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.SoundEffectConstants;
 import android.view.View;
-import android.view.Window;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -34,6 +30,7 @@ import java.io.OutputStreamWriter;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -41,43 +38,35 @@ public class TrainingActivity extends AppCompatActivity {
 
     private static final int GOOD_SPEED_LOWER_LIMIT = 100;
     private static final int GOOD_SPEED_HIGHER_LIMIT = 120;
-    private static final int GOOD_DEPTH_LOWER_LIMIT = 5;
-    private static final int GOOD_DEPTH_HIGHER_LIMIT = 6;
+    private static final int GOOD_DEPTH_LOWER_LIMIT = 50;
+    private static final int GOOD_DEPTH_HIGHER_LIMIT = 60;
 
     // UI colors
-    private int DEEP_OR_FAST_COLOR = Color.argb(255, 0, 158, 155);
-    private int SHALLOW_OR_SLOW_COLOR = Color.argb(255, 240, 228, 66);
-    private int GOOD_COMPRESSION_COLOR = Color.argb(255, 0, 114, 78);
-
+    private final int DEEP_OR_FAST_COLOR = Color.argb(255, 0, 158, 155);
+    private final int SHALLOW_OR_SLOW_COLOR = Color.argb(255, 240, 228, 66);
+    private final int GOOD_COMPRESSION_COLOR = Color.argb(255, 0, 114, 78);
 
     private static final String LOG_TAG = TrainingActivity.class.getSimpleName();
     public static final String SERIAL = "serial";
     String connectedSerial;
 
-
-
-    // Sensor subscription
-    static private String URI_MEAS_ACC_13 = "/Meas/Acc/13"; //subscription with frequency of 13Hz
     private MdsSubscription mdsSubscription;
-    private String subscribedDeviceSerial;
     private DataLoggerState mDLState;
 
     //URI:s
-    public static final String URI_CONNECTEDDEVICES = "suunto://MDS/ConnectedDevices";
-    private static final String URI_MDS_LOGBOOK_DATA= "suunto://MDS/Logbook/{0}/ById/{1}/Data";
+    private static final String URI_MDS_LOGBOOK_DATA = "suunto://MDS/Logbook/{0}/ById/{1}/Data";
     private static final String URI_DATALOGGER_STATE = "suunto://{0}/Mem/DataLogger/State";
     public static final String URI_EVENTLISTENER = "suunto://MDS/EventListener";
-    public static final String SCHEME_PREFIX = "suunto://";
     private static final String URI_LOGBOOK_ENTRIES = "suunto://{0}/Mem/Logbook/Entries";
     private static final String URI_DATALOGGER_CONFIG = "suunto://{0}/Mem/DataLogger/Config";
 
+    private static final double minTop = -7;
+    private static final double minBot = -12;
+
     //Data variables setup
-    private int counter;
-    private AccDataResponse[] dataArray= new AccDataResponse[1];
-    private AccDataResponse[] twoSecs= new AccDataResponse[26];
-    private double minTop= -7;
-    private double minBot= -12;
-    private double depth = 9;
+    private AccDataResponse[] dataArray = new AccDataResponse[1];
+    private AccDataResponse[] twoSecs = new AccDataResponse[26];
+    private double depth = 90;
     private double freq = 100;
 
     // UI elements
@@ -85,22 +74,13 @@ public class TrainingActivity extends AppCompatActivity {
     private ProgressBar freqProgressBar;
     private ProgressBar depthProgressBar;
     private TextView mSaveText;
-    private Button mButtonStart;
-
-    //Timer setup
-    private static final long START_TIME_IN_MILLIS = 60000;
-    private CountDownTimer mCountDownTimer;
-    private boolean mTimerRunning;
-    private long mTimeLeftInMillis = START_TIME_IN_MILLIS;
-
-    private Timer metronome;
 
     //Vuzix testing
-    private boolean TESTING = MainActivity.TESTING;
-    private Timer testTimer;
+    private final boolean TESTING = MainActivity.TESTING;
 
-    private Mds getMDS() {return MainActivity.mMds;}
-
+    private Mds getMDS() {
+        return MainActivity.mMds;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,51 +96,35 @@ public class TrainingActivity extends AppCompatActivity {
         int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN + View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
         decorView.setSystemUiVisibility(uiOptions);
         getWindow().getDecorView().setBackgroundColor(Color.parseColor("#ffffff"));
-        saveBtn=(Button) findViewById(R.id.save);
+        saveBtn = (Button) findViewById(R.id.save);
         saveBtn.setVisibility(View.GONE);
         configureDataLogger();
         fetchDataLoggerState();
-        freqProgressBar= (ProgressBar) findViewById(R.id.freqBar);
-        depthProgressBar= (ProgressBar) findViewById(R.id.depthBar);
-        mSaveText=(TextView)findViewById(R.id.savetext);
+        freqProgressBar = (ProgressBar) findViewById(R.id.freqBar);
+        depthProgressBar = (ProgressBar) findViewById(R.id.depthBar);
+        mSaveText = (TextView) findViewById(R.id.savetext);
 
-        saveBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mButtonStart.setVisibility(View.GONE);
-                mSaveText.setVisibility(View.VISIBLE);
-                fetchLogEntry(1);
+        saveBtn.setOnClickListener(view -> {
+            mSaveText.setVisibility(View.VISIBLE);
+            fetchLogEntry();
 
-            }
         });
 
         playMetronome();
 
-        if( TESTING ) {
+        if (TESTING) {
             //Vuzix testing
-            testTimer = new Timer();
+            Timer testTimer = new Timer();
             testTimer.schedule(new TimerTask() {
                 public void run() {
                     updateDisplayTest();
                 }
             }, 0, 1000);
         } else {
-            mButtonStart.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (!mTimerRunning) {
-                        mTimeLeftInMillis = START_TIME_IN_MILLIS;
-                        eraseAllLogs();
-                        mButtonStart.setVisibility(View.INVISIBLE);
-                        mSaveText.setVisibility(View.GONE);
-                        subscribeToSensor(connectedSerial);
-                        setDataLoggerState(true);
-
-                    }
-                }
-            });
+            eraseAllLogs();
+            subscribeToSensor(connectedSerial);
+            setDataLoggerState(true);
         }
-
 
     }
 
@@ -169,50 +133,50 @@ public class TrainingActivity extends AppCompatActivity {
         this.runOnUiThread(tick);
     }
 
-    private Runnable tick = new Runnable() {
+    private final Runnable tick = new Runnable() {
         public void run() {
             double freqRandom = Math.random();
-            if( freqRandom < 0.2 ) {
+            if (freqRandom < 0.2) {
                 freq -= 1;
-            } else if( freqRandom > 0.8 ){
+            } else if (freqRandom > 0.8) {
                 freq += 1;
             }
             double depthRandom = Math.random();
-            if( depthRandom < 0.2 ) {
+            if (depthRandom < 0.2) {
                 depth -= 1;
-            } else if( depthRandom > 0.8 ){
+            } else if (depthRandom > 0.8) {
                 depth += 1;
             }
-            if( freq < 80 ) {
+            if (freq < 80) {
                 freq = 80;
             }
-            if( freq > 140 ) {
+            if (freq > 140) {
                 freq = 140;
             }
-            if( depth < 2 ) {
-                depth = 2;
+            if (depth < 20) {
+                depth = 20;
             }
-            if( depth > 9 ) {
-                depth = 9;
+            if (depth > 90) {
+                depth = 90;
             }
-            int freqInt= (int) freq;
-            int depthInt= (int) depth;
-            String freqStr = String.format("%.0f",freq);
-            String distStr = String.format("%.0f",depth);
+            int freqInt = (int) freq;
+            int depthInt = (int) depth;
+            String freqStr = String.format(Locale.getDefault(), "%.0f", freq);
+            String distStr = String.format(Locale.getDefault(), "%.0f", depth);
             ((TextView) findViewById(R.id.freq)).setText(freqStr);
             ((TextView) findViewById(R.id.depth)).setText(distStr);
             freqProgressBar.setProgress(freqInt);
-            if( freqInt < GOOD_SPEED_LOWER_LIMIT ) {
+            if (freqInt < GOOD_SPEED_LOWER_LIMIT) {
                 freqProgressBar.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
-            } else if( freqInt > GOOD_SPEED_HIGHER_LIMIT ) {
+            } else if (freqInt > GOOD_SPEED_HIGHER_LIMIT) {
                 freqProgressBar.setBackgroundColor(DEEP_OR_FAST_COLOR);
             } else {
                 freqProgressBar.setBackgroundColor(GOOD_COMPRESSION_COLOR);
             }
             depthProgressBar.setProgress(depthInt);
-            if( depthInt < GOOD_DEPTH_LOWER_LIMIT ) {
+            if (depthInt < GOOD_DEPTH_LOWER_LIMIT) {
                 depthProgressBar.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
-            } else if( depthInt > GOOD_DEPTH_HIGHER_LIMIT ) {
+            } else if (depthInt > GOOD_DEPTH_HIGHER_LIMIT) {
                 depthProgressBar.setBackgroundColor(DEEP_OR_FAST_COLOR);
             } else {
                 depthProgressBar.setBackgroundColor(GOOD_COMPRESSION_COLOR);
@@ -227,89 +191,80 @@ public class TrainingActivity extends AppCompatActivity {
         builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert);
         builder.setTitle("Exiting training")
                 .setMessage("Are you sure you want to exit and lose the data from this training?")
-                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        setDataLoggerState(false);
-                        unsubscribe();
-                        getMDS().disconnect(connectedSerial);
-                        finish();
-                    }
+                .setPositiveButton(android.R.string.yes, (dialog, which) -> {
+                    setDataLoggerState(false);
+                    unsubscribe();
+                    getMDS().disconnect(connectedSerial);
+                    finish();
                 })
-                .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        // do nothing
-                    }
+                .setNegativeButton(android.R.string.no, (dialog, which) -> {
+                    // do nothing
                 }).show();
     }
 
-    private double singleDistanceStep(int i){
-        double accDiff=0;
-        double timeDiff=0;
-        accDiff=twoSecs[i].body.array[0].z -twoSecs[i-1].body.array[0].z;
-        timeDiff=twoSecs[i].body.timestamp/1000.0 -twoSecs[i-1].body.timestamp/1000.0;
-        double distance=0.5 *(accDiff) * Math.pow(timeDiff,2);
-        return distance;
+    private double singleDistanceStep(int i) {
+        double accDiff = twoSecs[i].body.array[0].z - twoSecs[i - 1].body.array[0].z;
+        double timeDiff = twoSecs[i].body.timestamp / 1000.0 - twoSecs[i - 1].body.timestamp / 1000.0;
+        return 0.5 * (accDiff) * Math.pow(timeDiff, 2);
     }
-    private void freqAndDepthCalc(){
-        twoSecs = Arrays.copyOfRange(dataArray,dataArray.length-26, dataArray.length-1 );
-        freq=0;
-        depth=0;
-        ArrayList<Double> distances = new ArrayList<Double>();
-        double distance=0;
-        double sum=0;
-        int peaks=0;
-        for(int i=0,high=0,low=0; i<twoSecs.length; i++){
-            if(high==0 && low==0){
-                if(twoSecs[i].body.array[0].z> minTop){
-                    high=1;
-                    if(i!=0){
-                        distance=singleDistanceStep(i);
+
+    private void freqAndDepthCalc() {
+        twoSecs = Arrays.copyOfRange(dataArray, dataArray.length - 26, dataArray.length - 1);
+        freq = 0;
+        depth = 0;
+        ArrayList<Double> distances = new ArrayList<>();
+        double distance = 0;
+        double sum;
+        int peaks = 0;
+        for (int i = 0, high = 0, low = 0; i < twoSecs.length; i++) {
+            if (high == 0 && low == 0) {
+                if (twoSecs[i].body.array[0].z > minTop) {
+                    high = 1;
+                    if (i != 0) {
+                        distance = singleDistanceStep(i);
                     }
                 }
-                if(twoSecs[i].body.array[0].z< minBot){
-                    low=1;
+                if (twoSecs[i].body.array[0].z < minBot) {
+                    low = 1;
                 }
 
-            }
-
-            else{
-                distance+=singleDistanceStep(i);
-                if(twoSecs[i].body.array[0].z > minTop && low==1 ){
-                    low=0;
+            } else {
+                distance += singleDistanceStep(i);
+                if (twoSecs[i].body.array[0].z > minTop && low == 1) {
+                    low = 0;
                     peaks++;
                 }
-                if(twoSecs[i].body.array[0].z < minBot && high==1 ){
-                    high=0;
+                if (twoSecs[i].body.array[0].z < minBot && high == 1) {
+                    high = 0;
                     peaks++;
                     distances.add(distance);
-                    sum=0;
+                    sum = 0;
 
-                    for(int p=0; p<distances.size();p++){
-                        sum=sum + distances.get(p);
+                    for (int p = 0; p < distances.size(); p++) {
+                        sum = sum + distances.get(p);
                     }
-                    depth=Math.abs(sum/(double) distances.size())*100;
+                    depth = Math.abs(sum / (double) distances.size()) * 1000;
 
-                    distance=0;
+                    distance = 0;
                 }
             }
         }
-        freq= (peaks / 4.0 ) * 60.0;
+        freq = (peaks / 4.0) * 60.0;
     }
+
     private void subscribeToSensor(String connectedSerial) {
-        counter=0;
         // Clean up existing subscription (if there is one)
         if (mdsSubscription != null) {
             unsubscribe();
         }
-        dataArray= Arrays.copyOf(dataArray,1);
+        dataArray = Arrays.copyOf(dataArray, 1);
         // Build JSON doc that describes what resource and device to subscribe
         // Here we subscribe to 13 hertz accelerometer data
-        StringBuilder sb = new StringBuilder();
-        String strContract = sb.append("{\"Uri\": \"").append(connectedSerial).append(URI_MEAS_ACC_13).append("\"}").toString();
+        // Sensor subscription
+        //subscription with frequency of 13Hz
+        String URI_MEAS_ACC_13 = "/Meas/Acc/13";
+        String strContract = "{\"Uri\": \"" + connectedSerial + URI_MEAS_ACC_13 + "\"}";
         Log.d(LOG_TAG, strContract);
-        final View sensorUI = findViewById(R.id.sensorUI);
-
-        subscribedDeviceSerial = connectedSerial;
 
         mdsSubscription = Mds.builder().build(this).subscribe(URI_EVENTLISTENER,
                 strContract, new MdsNotificationListener() {
@@ -320,30 +275,30 @@ public class TrainingActivity extends AppCompatActivity {
 
                         AccDataResponse accResponse = new Gson().fromJson(data, AccDataResponse.class);
                         if (accResponse != null && accResponse.body.array.length > 0) {
-                            dataArray=Arrays.copyOf(dataArray,dataArray.length+1);
-                            dataArray[dataArray.length-1]=accResponse;
+                            dataArray = Arrays.copyOf(dataArray, dataArray.length + 1);
+                            dataArray[dataArray.length - 1] = accResponse;
 
                         }
                         if (accResponse != null && dataArray.length > 26 && dataArray.length % 2 == 0) {
                             freqAndDepthCalc();
-                            int freqInt= (int) freq;
-                            int depthInt= (int) depth;
-                            String freqStr = String.format("%.0f",freq);
-                            String distStr = String.format("%.0f",depth);
+                            int freqInt = (int) freq;
+                            int depthInt = (int) depth;
+                            String freqStr = String.format(Locale.getDefault(), "%.0f", freq);
+                            String distStr = String.format(Locale.getDefault(), "%.0f", depth);
                             ((TextView) findViewById(R.id.freq)).setText(freqStr);
                             ((TextView) findViewById(R.id.depth)).setText(distStr);
                             freqProgressBar.setProgress(freqInt);
-                            if( freqInt < GOOD_SPEED_LOWER_LIMIT ) {
+                            if (freqInt < GOOD_SPEED_LOWER_LIMIT) {
                                 freqProgressBar.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
-                            } else if( freqInt > GOOD_SPEED_HIGHER_LIMIT ) {
+                            } else if (freqInt > GOOD_SPEED_HIGHER_LIMIT) {
                                 freqProgressBar.setBackgroundColor(DEEP_OR_FAST_COLOR);
                             } else {
                                 freqProgressBar.setBackgroundColor(GOOD_COMPRESSION_COLOR);
                             }
                             depthProgressBar.setProgress(depthInt);
-                            if( depthInt < GOOD_DEPTH_LOWER_LIMIT ) {
+                            if (depthInt < GOOD_DEPTH_LOWER_LIMIT) {
                                 depthProgressBar.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
-                            } else if( depthInt > GOOD_DEPTH_HIGHER_LIMIT ) {
+                            } else if (depthInt > GOOD_DEPTH_HIGHER_LIMIT) {
                                 depthProgressBar.setBackgroundColor(DEEP_OR_FAST_COLOR);
                             } else {
                                 depthProgressBar.setBackgroundColor(GOOD_COMPRESSION_COLOR);
@@ -360,26 +315,6 @@ public class TrainingActivity extends AppCompatActivity {
                         unsubscribe();
                     }
                 });
-
-    }
-
-    private void createNewLog() {
-        // Access the Logbook/Entries resource
-        String entriesUri = MessageFormat.format(URI_LOGBOOK_ENTRIES, connectedSerial);
-
-        getMDS().post(entriesUri, null, new MdsResponseListener() {
-            @Override
-            public void onSuccess(String data) {
-                Log.i(LOG_TAG, "POST LogEntries succesful: " + data);
-                IntResponse logIdResp = new Gson().fromJson(data, IntResponse.class);
-
-            }
-
-            @Override
-            public void onError(MdsException e) {
-                Log.e(LOG_TAG, "POST LogEntries returned error: " + e);
-            }
-        });
 
     }
 
@@ -435,8 +370,7 @@ public class TrainingActivity extends AppCompatActivity {
                         );
 
         // Make sure the path directory exists.
-        if(!path.exists())
-        {
+        if (!path.exists()) {
             // Make it, if it doesn't exit
             path.mkdirs();
         }
@@ -446,14 +380,13 @@ public class TrainingActivity extends AppCompatActivity {
         // Save data to the file
         Log.d(LOG_TAG, "Writing data to file: " + file.getAbsolutePath());
 
-        try
-        {
+        try {
             FileOutputStream fOut = new FileOutputStream(file.getAbsolutePath(), false);
             OutputStreamWriter myOutWriter = new OutputStreamWriter(fOut);
 
             // Write in pieces in case the file is big
-            final int BLOCK_SIZE= 4096;
-            for (int startIdx=0;startIdx<data.length();startIdx+=BLOCK_SIZE) {
+            final int BLOCK_SIZE = 4096;
+            for (int startIdx = 0; startIdx < data.length(); startIdx += BLOCK_SIZE) {
                 int endIdx = Math.min(data.length(), startIdx + BLOCK_SIZE);
                 myOutWriter.write(data.substring(startIdx, endIdx));
             }
@@ -463,12 +396,9 @@ public class TrainingActivity extends AppCompatActivity {
 
             fOut.flush();
             fOut.close();
-            mSaveText.setText("File saved to "+file.getAbsolutePath());
-            mButtonStart.setVisibility(View.VISIBLE);
+            mSaveText.setText("File saved to " + file.getAbsolutePath());
             saveBtn.setVisibility(View.INVISIBLE);
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             Log.e(LOG_TAG, "File write failed: ", e);
             mSaveText.setText("Saving failed: check permissions");
             saveBtn.setVisibility(View.INVISIBLE);
@@ -485,7 +415,7 @@ public class TrainingActivity extends AppCompatActivity {
         // Create the config object
         DataLoggerConfig.DataEntry[] entries = {new DataLoggerConfig.DataEntry("/Meas/Acc/13")};
         DataLoggerConfig config = new DataLoggerConfig(new DataLoggerConfig.Config(new DataLoggerConfig.DataEntries(entries)));
-        String jsonConfig = new Gson().toJson(config,DataLoggerConfig.class);
+        String jsonConfig = new Gson().toJson(config, DataLoggerConfig.class);
 
         Log.d(LOG_TAG, "Config request: " + jsonConfig);
         getMDS().put(configUri, jsonConfig, new MdsResponseListener() {
@@ -500,6 +430,7 @@ public class TrainingActivity extends AppCompatActivity {
             }
         });
     }
+
     private void eraseAllLogs() {
         // Access the Logbook/Entries resource
         String entriesUri = MessageFormat.format(URI_LOGBOOK_ENTRIES, connectedSerial);
@@ -517,12 +448,12 @@ public class TrainingActivity extends AppCompatActivity {
             }
         });
     }
-    private void fetchLogEntry(final int id) {
+
+    private void fetchLogEntry() {
         // GET the /MDS/Logbook/Data proxy
-        String logDataUri = MessageFormat.format(URI_MDS_LOGBOOK_DATA, connectedSerial, id);
-        Long tsLong = System.currentTimeMillis()/1000;
+        String logDataUri = MessageFormat.format(URI_MDS_LOGBOOK_DATA, connectedSerial, 1);
+        Long tsLong = System.currentTimeMillis() / 1000;
         String ts = tsLong.toString();
-        final Context me = this;
         getMDS().get(logDataUri, null, new MdsResponseListener() {
             @Override
             public void onSuccess(final String data) {
@@ -546,21 +477,23 @@ public class TrainingActivity extends AppCompatActivity {
             mdsSubscription = null;
         }
 
-        subscribedDeviceSerial = null;
-
     }
 
     public void playMetronome() {
-        metronome = new Timer();
-        metronome.schedule(new TimerTask() { public void run() { playSound(); } }, 0, 570); // 570 = 60000 / 105
+        Timer metronome = new Timer();
+        metronome.schedule(new TimerTask() {
+            public void run() {
+                playSound();
+            }
+        }, 0, 570); // 570 = 60000 / 105
     }
 
-    private void  playSound() {
-        this.runOnUiThread(new Runnable() { public void run() {
-            if( freq > GOOD_SPEED_HIGHER_LIMIT || freq < GOOD_SPEED_LOWER_LIMIT ) {
+    private void playSound() {
+        this.runOnUiThread(() -> {
+            if (freq > GOOD_SPEED_HIGHER_LIMIT || freq < GOOD_SPEED_LOWER_LIMIT) {
                 getWindow().getDecorView().playSoundEffect(SoundEffectConstants.CLICK);
             }
-        }});
+        });
     }
 
 }

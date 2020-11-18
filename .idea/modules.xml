@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/SmartGloves4CPR.iml" filepath="$PROJECT_DIR$/.idea/modules/SmartGloves4CPR.iml" group="SmartGloves4CPR" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/app.iml" group="SmartGloves4CPR/app" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Smart-Gloves-for-CPR-training.iml" filepath="$PROJECT_DIR$/.idea/modules/Smart-Gloves-for-CPR-training.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Smart-Gloves-for-CPR-training.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Smart-Gloves-for-CPR-training.app.iml" />
     </modules>
   </component>
 </project>
