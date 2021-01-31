@@ -39,8 +39,8 @@ public class TrainingActivity extends AppCompatActivity {
 
     private static final int GOOD_SPEED_LOWER_LIMIT = 100;
     private static final int GOOD_SPEED_HIGHER_LIMIT = 120;
-    private static final int GOOD_DEPTH_LOWER_LIMIT = 50;
-    private static final int GOOD_DEPTH_HIGHER_LIMIT = 60;
+    private static final int GOOD_DEPTH_LOWER_LIMIT = 30;
+    private static final int GOOD_DEPTH_HIGHER_LIMIT = 50;
 
     // UI colors
     private final int DEEP_OR_FAST_COLOR = Color.argb(255, 0, 158, 155);
@@ -61,8 +61,8 @@ public class TrainingActivity extends AppCompatActivity {
     private static final String URI_LOGBOOK_ENTRIES = "suunto://{0}/Mem/Logbook/Entries";
     private static final String URI_DATALOGGER_CONFIG = "suunto://{0}/Mem/DataLogger/Config";
 
-    private static final double minTop = -7;
-    private static final double minBot = -12;
+    private static final double minTop = -8;
+    private static final double minBot = -11;
 
     //Data variables setup
     private AccDataResponse[] dataArray = new AccDataResponse[1];
