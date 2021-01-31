@@ -32,30 +32,6 @@
         app:srcCompat="@android:drawable/arrow_down_float"
         tools:layout_editor_absoluteX="105dp" />
 
-    <ProgressBar
-        android:id="@+id/freqBar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="640dp"
-        android:layout_height="150dp"
-        android:alpha="100"
-        android:background="#009E37"
-        android:max="220"
-        android:progress="0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <ProgressBar
-        android:id="@+id/depthBar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="640dp"
-        android:layout_height="150dp"
-        android:alpha="20"
-        android:background="#F0E442"
-        android:max="10"
-        android:progress="0"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
     <TextView
         android:id="@+id/savetext"
         android:layout_width="wrap_content"
@@ -66,5 +42,19 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         tools:layout_editor_absoluteY="268dp" />
+
+    <SurfaceView
+        android:id="@+id/freqPane"
+        android:layout_width="640dp"
+        android:layout_height="150dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <SurfaceView
+        android:id="@+id/depthPane"
+        android:layout_width="640dp"
+        android:layout_height="150dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </android.support.constraint.ConstraintLayout>

@@ -10,6 +10,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.SoundEffectConstants;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -73,8 +74,8 @@ public class TrainingActivity extends AppCompatActivity {
 
     // UI elements
     private Button saveBtn;
-    private ProgressBar freqProgressBar;
-    private ProgressBar depthProgressBar;
+    private SurfaceView freqView;
+    private SurfaceView depthView;
     private TextView mSaveText;
     private ImageView mUpArrow;
     private ImageView mDownArrow;
@@ -109,8 +110,8 @@ public class TrainingActivity extends AppCompatActivity {
 
         configureDataLogger();
         fetchDataLoggerState();
-        freqProgressBar = (ProgressBar) findViewById(R.id.freqBar);
-        depthProgressBar = (ProgressBar) findViewById(R.id.depthBar);
+        freqView = (SurfaceView) findViewById(R.id.freqPane);
+        depthView = (SurfaceView) findViewById(R.id.depthPane);
         mSaveText = (TextView) findViewById(R.id.savetext);
 
         saveBtn.setOnClickListener(view -> {
@@ -190,27 +191,25 @@ public class TrainingActivity extends AppCompatActivity {
     private void updateDisplay() {
         int freqInt = (int) freq;
         int depthInt = (int) depth;
-        freqProgressBar.setProgress(freqInt);
         if (freqInt < GOOD_SPEED_LOWER_LIMIT) {
-            freqProgressBar.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
+            freqView.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
         } else if (freqInt > GOOD_SPEED_HIGHER_LIMIT) {
-            freqProgressBar.setBackgroundColor(DEEP_OR_FAST_COLOR);
+            freqView.setBackgroundColor(DEEP_OR_FAST_COLOR);
         } else {
-            freqProgressBar.setBackgroundColor(GOOD_COMPRESSION_COLOR);
+            freqView.setBackgroundColor(GOOD_COMPRESSION_COLOR);
         }
-        depthProgressBar.setProgress(depthInt);
         if (depthInt < GOOD_DEPTH_LOWER_LIMIT) {
-            depthProgressBar.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
+            depthView.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
             mUpArrow.setVisibility(View.INVISIBLE);
             mDownArrow.setVisibility(View.VISIBLE);
             mDownArrow.bringToFront();
         } else if (depthInt > GOOD_DEPTH_HIGHER_LIMIT) {
-            depthProgressBar.setBackgroundColor(DEEP_OR_FAST_COLOR);
+            depthView.setBackgroundColor(DEEP_OR_FAST_COLOR);
             mUpArrow.setVisibility(View.VISIBLE);
             mUpArrow.bringToFront();
             mDownArrow.setVisibility(View.INVISIBLE);
         } else {
-            depthProgressBar.setBackgroundColor(GOOD_COMPRESSION_COLOR);
+            depthView.setBackgroundColor(GOOD_COMPRESSION_COLOR);
             mUpArrow.setVisibility(View.INVISIBLE);
             mDownArrow.setVisibility(View.INVISIBLE);
         }
