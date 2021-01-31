@@ -76,8 +76,6 @@ public class TrainingActivity extends AppCompatActivity {
     private ProgressBar freqProgressBar;
     private ProgressBar depthProgressBar;
     private TextView mSaveText;
-    private TextView mFreqText;
-    private TextView mDepthText;
     private ImageView mUpArrow;
     private ImageView mDownArrow;
 
@@ -113,8 +111,6 @@ public class TrainingActivity extends AppCompatActivity {
         fetchDataLoggerState();
         freqProgressBar = (ProgressBar) findViewById(R.id.freqBar);
         depthProgressBar = (ProgressBar) findViewById(R.id.depthBar);
-        mFreqText = ((TextView) findViewById(R.id.freq));
-        mDepthText = ((TextView) findViewById(R.id.depth));
         mSaveText = (TextView) findViewById(R.id.savetext);
 
         saveBtn.setOnClickListener(view -> {
@@ -194,10 +190,6 @@ public class TrainingActivity extends AppCompatActivity {
     private void updateDisplay() {
         int freqInt = (int) freq;
         int depthInt = (int) depth;
-        String freqStr = String.format(Locale.getDefault(), "%.0f", freq);
-        String distStr = String.format(Locale.getDefault(), "%.0f", depth);
-        mFreqText.setText(freqStr);
-        mDepthText.setText(distStr);
         freqProgressBar.setProgress(freqInt);
         if (freqInt < GOOD_SPEED_LOWER_LIMIT) {
             freqProgressBar.setBackgroundColor(SHALLOW_OR_SLOW_COLOR);
